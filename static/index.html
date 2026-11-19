@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NIDS Dashboard</title>
+<style>
+:root{--bg:#0b1020;--panel:#121a30;--panel2:#18223d;--text:#e6ebf7;--muted:#8b97b5;--line:#24305a;--accent:#4f8cff;--good:#2ecc8f;--warn:#f5b53d;--bad:#ff5d6c}
+[data-theme=light]{--bg:#f3f5fb;--panel:#ffffff;--panel2:#eef2fb;--text:#16203a;--muted:#5d6a8a;--line:#dde3f2;--accent:#2f6fed;--good:#12a36b;--warn:#c98a0b;--bad:#e0364a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.brand{display:flex;gap:12px;align-items:center}.logo{font-size:26px}h1{font-size:17px;margin:0}small{color:var(--muted)}
+.hr{display:flex;gap:10px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);font-weight:600}
+.pill i{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.pill.live i{background:var(--good);animation:pulse 1.4s infinite}.pill.pcap i{background:var(--accent);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.25}}
+nav{display:flex;gap:4px;padding:10px 24px 0}nav button{background:none;border:0;color:var(--muted);padding:9px 16px;border-bottom:2px solid transparent;cursor:pointer;font:inherit;font-weight:600}
+nav button.on{color:var(--text);border-color:var(--accent)}
+main{padding:16px 24px 40px;max-width:1280px;margin:auto}.tab{display:none}.tab.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px}
+.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px}.two{grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}.kpi b{display:block;font-size:26px;margin-top:2px}.kpi span{color:var(--muted);font-size:12px}
+.threat{font-size:20px!important}.threat.normal{color:var(--good)}.threat.watch{color:var(--warn)}.threat.danger{color:var(--bad)}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button,select,input[type=text]{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 14px}
+button{cursor:pointer;font-weight:600}button:hover:not(:disabled){border-color:var(--accent)}button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}button.danger{background:var(--bad);border-color:var(--bad);color:#fff}button.ghost{padding:6px 10px}
+select#iface{min-width:260px;max-width:100%}.sep{width:1px;height:26px;background:var(--line)}
+.banner{border-radius:12px;padding:10px 14px;margin-bottom:14px;border:1px solid var(--warn);color:var(--warn);background:#f5b53d14}
+canvas{width:100%;height:220px;display:block}
+.sl{display:grid;grid-template-columns:1fr 60px;gap:2px 10px;align-items:center;margin-bottom:12px}.sl label{font-weight:600}.sl output{text-align:right;color:var(--accent);font-weight:700}
+.sl input{grid-column:1/3;width:100%;accent-color:var(--accent)}.sl small{grid-column:1/3}
+.lbl{display:flex;align-items:center;gap:10px;margin:7px 0}.lbl span{width:120px}.lbl .bar{flex:1;height:8px;background:var(--panel2);border-radius:9px;overflow:hidden}.lbl .bar i{display:block;height:100%}.lbl em{width:80px;text-align:right;font-style:normal;color:var(--muted)}
+.tw{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse}th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel2);font-size:12px;color:var(--muted);text-transform:uppercase}tbody tr{cursor:pointer}tbody tr:hover{background:var(--panel2)}
+.empty{text-align:center;color:var(--muted);padding:28px}
+.badge{padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700}.high{background:#ff5d6c26;color:var(--bad)}.medium{background:#f5b53d26;color:var(--warn)}.low{background:#4f8cff26;color:var(--accent)}
+.tag{display:inline-block;padding:2px 9px;border-radius:7px;font-weight:600;font-size:12px;color:#fff}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}.modal.on{display:flex}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:22px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:14px 0}.facts div{background:var(--panel2);border-radius:10px;padding:9px 12px}.facts span{display:block;color:var(--muted);font-size:12px}
+.how{background:var(--panel2);border-left:3px solid var(--accent);padding:10px 14px;border-radius:8px;margin:10px 0}
+pre{background:var(--panel2);padding:14px;border-radius:10px;overflow:auto;font-size:12.5px}img{max-width:100%;border-radius:10px;background:#fff}
+.chips span{display:inline-block;background:var(--panel2);border:1px solid var(--line);padding:3px 10px;border-radius:99px;margin:3px;font-size:12.5px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);padding:11px 18px;border-radius:12px;display:none;z-index:30;box-shadow:0 8px 30px #0006}
+#toast.bad{border-color:var(--bad)}ol li{margin:6px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">🛡️</span><div><h1>Network Intrusion Detection</h1><small>Random Forest flow classifier + port-scan rule</small></div></div>
+  <div class="hr"><span id="pill" class="pill"><i></i><b id="pillText">Idle</b></span><button class="ghost" id="themeBtn" title="Switch light / dark">◐</button></div>
+</header>
+<nav><button class="on" data-tab="dash">Dashboard</button><button data-tab="model">Model &amp; results</button><button data-tab="help">Help</button></nav>
+<main>
+<div id="tab-dash" class="tab on">
+  <div id="adminWarn" class="banner" style="display:none">⚠️ Not running as Administrator, so live capture cannot start. Close this, re-open the terminal as Administrator and run <b>python app.py</b> again. PCAP analysis still works.</div>
+  <div id="errBanner" class="banner" style="display:none"></div>
+
+  <section class="card"><div class="ctrl">
+    <select id="iface" title="Network interface to monitor"></select>
+    <button class="primary" id="btnStart">▶ Start live capture</button>
+    <button class="danger" id="btnStop" disabled>■ Stop</button>
+    <span class="sep"></span>
+    <button id="btnUpload">📂 Analyse a PCAP file</button><input type="file" id="file" accept=".pcap,.pcapng,.cap" hidden>
+    <button id="btnTest" title="Sends a short port scan to a device on your own LAN so you can watch the detector react">🧪 Self-test</button>
+    <span class="sep"></span>
+    <button id="btnExport">⬇ Export CSV</button><button id="btnClear">🗑 Clear</button>
+  </div></section>
+
+  <div class="grid kpis">
+    <div class="kpi"><span>Threat level</span><b id="kThreat" class="threat normal">Idle</b></div>
+    <div class="kpi"><span>Packets seen</span><b id="kPk">0</b></div>
+    <div class="kpi"><span>Flows classified</span><b id="kFl">0</b></div>
+    <div class="kpi"><span>Active flows</span><b id="kAct">0</b></div>
+    <div class="kpi"><span>Alerts raised</span><b id="kAl">0</b></div>
+    <div class="kpi"><span>Ignored (weak / tiny)</span><b id="kSup">0</b></div>
+    <div class="kpi"><span>Running time</span><b id="kUp">0:00</b></div>
+  </div>
+
+  <div class="grid two">
+    <section class="card"><h2>Traffic (packets per second) &amp; alerts</h2><canvas id="cTl"></canvas></section>
+    <section class="card"><h2>Alerts by attack type</h2><canvas id="cBars"></canvas></section>
+  </div>
+
+  <div class="grid two">
+    <section class="card"><h2>Detection settings (apply instantly)</h2>
+      <div class="sl"><label for="sConf">Confidence needed for an ML alert</label><output id="oConf"></output><input type="range" id="sConf" min="0.5" max="0.99" step="0.01"><small>Higher = fewer false alarms, may miss weak attacks.</small></div>
+      <div class="sl"><label for="sPkts">Minimum packets in a flow for an ML alert</label><output id="oPkts"></output><input type="range" id="sPkts" min="1" max="10" step="1"><small>Single-exchange flows are the main source of false alarms.</small></div>
+      <div class="sl"><label for="sPorts">Port-scan rule: different ports probed</label><output id="oPorts"></output><input type="range" id="sPorts" min="3" max="60" step="1"><small>Alert when one device probes this many ports of one target…</small></div>
+      <div class="sl"><label for="sWin">…within this many seconds</label><output id="oWin"></output><input type="range" id="sWin" min="5" max="60" step="1"></div>
+    </section>
+    <section class="card"><h2>All flows by predicted class</h2><div id="labels"></div><h2 style="margin-top:18px">Top sources of alerts</h2><div id="topSrc" class="chips"></div></section>
+  </div>
+
+  <section class="card"><h2>Alerts <small id="alertCountWrap">(<span id="alertCount">0</span> shown — click a row for details)</small></h2>
+    <div class="filters"><select id="fType"><option value="">All types</option></select>
+      <select id="fSev"><option value="">All severities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+      <input type="text" id="fText" placeholder="Search IP or type…"></div>
+    <div class="tw"><table><thead><tr><th>Time</th><th>Severity</th><th>Type</th><th>Source → Destination</th><th>Confidence</th><th>Size</th></tr></thead><tbody id="alertBody"></tbody></table></div>
+  </section>
+</div>
+
+<div id="tab-model" class="tab">
+  <section class="card"><h2>Classes the model can recognise</h2><div id="mClasses" class="chips"></div><h2 style="margin-top:16px">Features used (from each network flow)</h2><div id="mFeat" class="chips"></div></section>
+  <section class="card"><h2>Test-set report (from training)</h2><pre id="mReport">Loading…</pre></section>
+  <section class="card" id="mCompCard" style="display:none"><h2>Classifier comparison</h2><div class="tw"><table id="mComp"></table></div></section>
+  <div class="grid two" id="mImgs"></div>
+</div>
+
+<div id="tab-help" class="tab"><section class="card">
+  <h2>How to use</h2>
+  <ol><li>Pick your Wi-Fi / Ethernet adapter and press <b>Start live capture</b> (needs Administrator).</li>
+  <li>Browse normally: the threat level should stay <b style="color:var(--good)">Normal</b>.</li>
+  <li>Press <b>Self-test</b> to scan a device on <i>your own</i> network (your router is pre-filled) and watch a <b>Port Scan (rule)</b> alert appear.</li>
+  <li>Click any alert row to see why it fired: addresses, packets, the model's top guesses and the flow's measurements.</li>
+  <li>No live attack? Use <b>Analyse a PCAP file</b> to replay a saved capture.</li>
+  <li>Use the sliders to tune sensitivity, and <b>Export CSV</b> to save the alerts for your report.</li></ol>
+  <h2>Good to know</h2>
+  <ul><li>The ML model was trained on 2017 lab traffic, so it sometimes flags normal traffic. The "ignored" counter shows flows that looked suspicious but were too weak or too small to alert on.</li>
+  <li>The model alone does not notice port scans well, so a behaviour rule covers them.</li>
+  <li>Traffic content is not inspected (encrypted); only flow statistics are used. Only monitor and test networks you own.</li></ul>
+</section></div>
+</main>
+
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(p,o){const r=await fetch(p,o);let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.error||r.statusText);return j}
+const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+let tt;function toast(m,bad){const t=$('#toast');t.textContent=m;t.className=bad?'bad':'';t.style.display='block';clearTimeout(tt);tt=setTimeout(()=>t.style.display='none',4200)}
+const COL={'DoS':'#ff8a3d','DDoS':'#ff5d6c','Port Scanning':'#b07cff','Port Scan (rule)':'#b07cff','Brute Force':'#f5b53d','Web Attacks':'#3dd6e8','Bots':'#ff6bd6','BENIGN':'#2ecc8f'};
+const colorOf=a=>COL[a]||'#8b97b5';
+const INFO={
+'Port Scan (rule)':['Port scan','One device sent connection attempts to many different ports of the same target in a short time — the typical first step of an attack (what nmap does).','Check who owns the source address. If it is not you, block it at the router/firewall and review which ports are exposed.'],
+'Port Scanning':['Port scan (ML)','The flow statistics resemble the probing traffic used to discover open ports.','Look for many similar alerts from one source; one isolated alert is often a false alarm.'],
+'DoS':['Denial of service','A source floods a service with requests so it becomes slow or unavailable.','Rate-limit or block the source and check the targeted service.'],
+'DDoS':['Distributed denial of service','Many sources flood one target at the same time.','Use upstream filtering / rate limiting; contact the network provider if sustained.'],
+'Brute Force':['Brute-force login attempt','Repeated login attempts (e.g. FTP/SSH) to guess a password.','Check authentication logs; use strong passwords, lockouts and key-based logins.'],
+'Web Attacks':['Web attack','Attempts such as SQL injection, XSS or web-login guessing against a web server.','Review web-server logs for the source; patch and use a web application firewall.'],
+'Bots':['Botnet activity','A compromised machine talking to a command-and-control server.','Isolate the machine and run a malware scan.']};
+let S=null,first=true,lastTotal=-1,lastKey='';
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function setup(cv){const d=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=w*d;cv.height=h*d;const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,w,h);return[c,w,h]}
+function drawTimeline(cv,tl){const[c,w,h]=setup(cv),P={l:40,r:8,t:10,b:20},iw=w-P.l-P.r,ih=h-P.t-P.b,n=120,pts=tl.slice(-n);
+ const mp=Math.max(10,...pts.map(p=>p.pkts)),ma=Math.max(1,...pts.map(p=>p.alerts));c.font='11px system-ui';c.lineWidth=1;
+ for(let i=0;i<=4;i++){const y=P.t+ih*i/4;c.strokeStyle=cssv('--line');c.beginPath();c.moveTo(P.l,y);c.lineTo(w-P.r,y);c.stroke();c.fillStyle=cssv('--muted');c.fillText(Math.round(mp*(1-i/4)),4,y+4)}
+ const bw=iw/n,off=n-pts.length;c.fillStyle=cssv('--bad')+'aa';
+ pts.forEach((p,i)=>{if(p.alerts){const bh=Math.max(4,ih*.4*p.alerts/ma);c.fillRect(P.l+(off+i)*bw,P.t+ih-bh,Math.max(2,bw-1),bh)}});
+ c.strokeStyle=cssv('--accent');c.lineWidth=2;c.beginPath();pts.forEach((p,i)=>{const x=P.l+(off+i+.5)*bw,y=P.t+ih*(1-p.pkts/mp);i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();
+ c.fillStyle=cssv('--muted');c.fillText('2 min ago',P.l,h-5);c.fillText('now',w-P.r-22,h-5)}
+function drawBars(cv,o){const[c,w,h]=setup(cv),e=Object.entries(o).sort((a,b)=>b[1]-a[1]);c.font='12px system-ui';
+ if(!e.length){c.fillStyle=cssv('--muted');c.fillText('No alerts yet — nothing suspicious detected.',8,26);return}
+ const mx=e[0][1],rh=Math.min(36,(h-6)/e.length),x0=132;
+ e.forEach(([k,v],i)=>{const y=4+i*rh,bw=Math.max(4,(w-x0-56)*v/mx);c.fillStyle=cssv('--text');c.fillText(k,6,y+rh*.62);c.fillStyle=colorOf(k);c.fillRect(x0,y+5,bw,rh-12);c.fillStyle=cssv('--muted');c.fillText(v,x0+bw+6,y+rh*.62)})}
+const fmtT=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+const fmtN=n=>Number(n||0).toLocaleString();
+function setPill(cls,t){$('#pill').className='pill '+cls;$('#pillText').textContent=t}
+function render(){
+ const m=S.mode;$('#adminWarn').style.display=S.admin?'none':'block';
+ const eb=$('#errBanner');eb.style.display=(S.error||S.engine_error)?'block':'none';eb.textContent=S.error||('Detector error: '+S.engine_error);
+ if(m==='live')setPill('live','Live capture · '+S.iface);else if(m==='pcap')setPill('pcap','Analysing '+S.pcap_name+'…');else setPill('',S.has_session?'Stopped':'Idle');
+ $('#btnStart').disabled=m!=='idle';$('#btnStop').disabled=m==='idle';$('#btnUpload').disabled=m!=='idle';$('#btnTest').disabled=m!=='live';$('#btnClear').disabled=m!=='idle';$('#iface').disabled=m!=='idle';
+ $('#btnStop').textContent=m==='pcap'?'■ Cancel':'■ Stop';
+ if(first){const c=S.cfg;$('#sConf').value=c.min_conf;$('#sPkts').value=c.min_pkts;$('#sPorts').value=c.scan_ports;$('#sWin').value=c.scan_window;sl();first=false}
+ if(!S.has_session){$('#kThreat').className='threat normal';$('#kThreat').textContent='Idle';['kPk','kFl','kAct','kAl','kSup'].forEach(i=>$('#'+i).textContent='0');$('#kUp').textContent='0:00';
+  drawTimeline($('#cTl'),[]);drawBars($('#cBars'),{});$('#labels').innerHTML='<small>Start a capture to see results.</small>';$('#topSrc').innerHTML='';lastTotal=-1;renderAlerts(true);return}
+ const th={normal:'Normal',watch:'Watch',danger:'Under attack'}[S.threat];$('#kThreat').className='threat '+S.threat;$('#kThreat').textContent=th;
+ $('#kPk').textContent=fmtN(S.packets);$('#kFl').textContent=fmtN(S.flows);$('#kAct').textContent=fmtN(S.active_flows);$('#kAl').textContent=fmtN(S.alerts);$('#kSup').textContent=fmtN(S.suppressed);$('#kUp').textContent=fmtT(S.uptime);
+ drawTimeline($('#cTl'),S.timeline);drawBars($('#cBars'),S.by_type);
+ const tot=Object.values(S.counts).reduce((a,b)=>a+b,0)||1;
+ $('#labels').innerHTML=Object.entries(S.counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="lbl"><span>${esc(k)}</span><div class="bar"><i style="width:${Math.max(1,v/tot*100)}%;background:${colorOf(k)}"></i></div><em>${fmtN(v)}</em></div>`).join('');
+ $('#topSrc').innerHTML=S.top_src.length?S.top_src.map(([ip,n])=>`<span>${esc(ip)} · ${n}</span>`).join(''):'<small>None</small>';
+ const sel=$('#fType'),types=Object.keys(S.by_type).sort(),key=types.join('|');
+ if(key!==lastKey){const cur=sel.value;sel.innerHTML='<option value="">All types</option>'+types.map(t=>`<option>${esc(t)}</option>`).join('');sel.value=types.includes(cur)?cur:'';lastKey=key}
+ renderAlerts(S.alerts!==lastTotal);lastTotal=S.alerts}
+let lastFilter='';
+function renderAlerts(force){const q=$('#fText').value.trim().toLowerCase(),ft=$('#fType').value,fs=$('#fSev').value,fk=q+ft+fs;
+ if(!force&&fk===lastFilter)return;lastFilter=fk;
+ const rows=((S&&S.alert_list)||[]).filter(a=>(!ft||a.attack===ft)&&(!fs||a.severity===fs)&&(!q||(a.src+' '+a.dst+' '+a.attack).toLowerCase().includes(q)));
+ $('#alertCount').textContent=Math.min(rows.length,150);
+ $('#alertBody').innerHTML=rows.length?rows.slice(0,150).map(a=>{const rule=a.kind==='rule',ep=(ip,p)=>esc(ip)+(p?':'+p:''),
+  size=rule?a.distinct_ports+' ports':((a.fwd_pkts+a.bwd_pkts)+' pkts');
+  return`<tr data-id="${a.id}"><td>${esc(a.time)}</td><td><span class="badge ${a.severity}">${a.severity}</span></td><td><span class="tag" style="background:${colorOf(a.attack)}">${esc(a.attack)}</span></td><td>${ep(a.src,a.sport)} → ${ep(a.dst,a.dport)}</td><td>${Math.round(a.confidence*100)}%</td><td>${size}</td></tr>`}).join(''):'<tr><td colspan="6" class="empty">No alerts to show.</td></tr>'}
+async function openDetail(id){try{const a=await api('/api/alert/'+id),inf=INFO[a.attack]||[a.attack,'Traffic the model considers suspicious.','Investigate the source address.'],rule=a.kind==='rule';
+ const f=(k,v)=>`<div><span>${k}</span>${esc(v)}</div>`;let h=`<div style="display:flex;justify-content:space-between;gap:10px"><h2 style="margin:0;font-size:20px">${esc(inf[0])} <span class="badge ${a.severity}">${a.severity}</span></h2><button class="ghost" onclick="closeModal()">✕</button></div>
+ <p>${esc(inf[1])}</p><div class="how"><b>What to do:</b> ${esc(inf[2])}</div><div class="facts">`+
+ f('Time',a.time)+f('Source',a.src+(a.sport?':'+a.sport:''))+f('Destination',a.dst+(a.dport?':'+a.dport:''))+f('Detected by',rule?'Behaviour rule':'Machine-learning model')+f('Confidence',Math.round(a.confidence*100)+'%');
+ if(rule)h+=f('Different ports probed',a.distinct_ports)+f('Within',a.window_s+' seconds');
+ else h+=f('Protocol',a.proto)+f('Packets (sent / received)',a.fwd_pkts+' / '+a.bwd_pkts)+f('Bytes',a.bytes)+f('Duration',a.duration_ms+' ms')+f('TCP flags (SYN/ACK/FIN/RST/PSH)',['SYN','ACK','FIN','RST','PSH'].map(k=>a.flags[k]).join(' / '));
+ h+='</div>';
+ if(rule&&a.ports_sample)h+=`<h2>Ports probed (first ${a.ports_sample.length})</h2><div class="chips">${a.ports_sample.map(p=>`<span>${p}</span>`).join('')}</div>`;
+ if(!rule){h+='<h2>Model\'s top guesses</h2>'+a.top.map(t=>`<div class="lbl"><span style="width:130px">${esc(t.label)}</span><div class="bar"><i style="width:${t.p*100}%;background:${colorOf(t.label)}"></i></div><em>${Math.round(t.p*100)}%</em></div>`).join('')+
+  `<details style="margin-top:12px"><summary>All measured features</summary><div class="tw" style="margin-top:8px"><table>${Object.entries(a.features).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v}</td></tr>`).join('')}</table></div></details>`}
+ $('#modalBox').innerHTML=h;$('#modal').classList.add('on')}catch(e){toast(e.message,1)}}
+function closeModal(){$('#modal').classList.remove('on')}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+$('#alertBody').addEventListener('click',e=>{const tr=e.target.closest('tr[data-id]');if(tr)openDetail(tr.dataset.id)});
+['#fType','#fSev'].forEach(s=>$(s).addEventListener('change',()=>renderAlerts()));$('#fText').addEventListener('input',()=>renderAlerts());
+
+function sl(){$('#oConf').textContent=Math.round($('#sConf').value*100)+'%';$('#oPkts').textContent=$('#sPkts').value;$('#oPorts').textContent=$('#sPorts').value;$('#oWin').textContent=$('#sWin').value+' s'}
+let dt;['#sConf','#sPkts','#sPorts','#sWin'].forEach(s=>$(s).addEventListener('input',()=>{sl();clearTimeout(dt);dt=setTimeout(()=>post('/api/settings',cfg()).catch(e=>toast(e.message,1)),250)}));
+const cfg=()=>({min_conf:+$('#sConf').value,min_pkts:+$('#sPkts').value,scan_ports:+$('#sPorts').value,scan_window:+$('#sWin').value});
+
+$('#btnStart').onclick=async()=>{try{await post('/api/start',{...cfg(),iface:$('#iface').value});toast('Live capture started');poll()}catch(e){toast(e.message,1)}};
+$('#btnStop').onclick=async()=>{try{await post('/api/stop');poll()}catch(e){toast(e.message,1)}};
+$('#btnClear').onclick=async()=>{try{await post('/api/clear');lastFilter='';poll()}catch(e){toast(e.message,1)}};
+$('#btnExport').onclick=()=>{location.href='/api/export.csv'};
+$('#btnUpload').onclick=()=>$('#file').click();
+$('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;const fd=new FormData();fd.append('file',f);toast('Uploading '+f.name+'…');
+ try{const r=await fetch('/api/upload',{method:'POST',body:fd}),j=await r.json();if(!r.ok)throw new Error(j.error);toast('Analysing capture…');poll()}catch(x){toast(x.message,1)}e.target.value=''};
+$('#btnTest').onclick=()=>{$('#modalBox').innerHTML=`<h2 style="margin-top:0">🧪 Self-test</h2><p>This sends a short burst of connection attempts to ~60 ports of one device on <b>your own network</b>, so you can watch the port-scan rule react.</p><p><b>Only run it against your own router or device.</b> Only private addresses (192.168.x.x, 10.x.x.x) are accepted.</p><p>Target IP:<br><input type="text" id="tgt" value="${esc(S&&S.gateway||'')}" placeholder="192.168.1.1" style="width:100%;margin-top:6px"></p><div style="display:flex;gap:10px;justify-content:flex-end"><button onclick="closeModal()">Cancel</button><button class="primary" id="go">I own this device — run test</button></div>`;
+ $('#modal').classList.add('on');$('#go').onclick=async()=>{try{await post('/api/selftest',{target:$('#tgt').value});closeModal();toast('Test running — watch for a Port Scan alert')}catch(e){toast(e.message,1)}}};
+$('#themeBtn').onclick=()=>{const d=document.documentElement;d.dataset.theme=d.dataset.theme==='dark'?'light':'dark';localStorage.theme=d.dataset.theme;if(S)render()};
+if(localStorage.theme)document.documentElement.dataset.theme=localStorage.theme;
+
+$$('nav button').forEach(b=>b.onclick=()=>{$$('nav button').forEach(x=>x.classList.toggle('on',x===b));$$('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+b.dataset.tab));if(b.dataset.tab==='model')loadModel()});
+let modelLoaded=false;async function loadModel(){if(modelLoaded)return;try{const m=await api('/api/model');modelLoaded=true;
+ $('#mClasses').innerHTML=m.classes.map(c=>`<span style="border-color:${colorOf(c)}">${esc(c)}</span>`).join('');$('#mFeat').innerHTML=m.features.map(c=>`<span>${esc(c)}</span>`).join('');
+ $('#mReport').textContent=m.report||'No report found. Run train.py to create reports/classification_report.txt';
+ if(m.comparison.length){$('#mCompCard').style.display='block';const k=Object.keys(m.comparison[0]);$('#mComp').innerHTML='<thead><tr>'+k.map(x=>`<th>${esc(x)}</th>`).join('')+'</tr></thead><tbody>'+m.comparison.map(r=>'<tr>'+k.map(x=>`<td>${esc(r[x])}</td>`).join('')+'</tr>').join('')+'</tbody>'}
+ $('#mImgs').innerHTML=m.images.map(n=>`<section class="card"><h2>${n.replace('.png','').replace('_',' ')}</h2><img src="/reports/${n}" alt="${n}"></section>`).join('')}catch(e){toast(e.message,1)}}
+
+async function loadIfaces(){try{const r=await api('/api/interfaces');$('#iface').innerHTML=r.interfaces.map(i=>`<option value="${esc(i.id)}">${esc(i.id)} · ${esc(i.ip||'no IP')}${i.default?' (default)':''} — ${esc(i.label.slice(0,40))}</option>`).join('')}catch(e){toast(e.message,1)}}
+async function poll(){try{S=await api('/api/state');render()}catch(e){setPill('','Server not reachable')}}
+loadIfaces();setInterval(poll,1000);poll();addEventListener('resize',()=>S&&render());
+</script>
+</body>
+</html>
